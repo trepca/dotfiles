@@ -26,61 +26,6 @@ FROM ubuntu:18.10 as protobuf_builder
 RUN apt-get update && apt-get install -y wget ca-certificates unzip
 RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip && unzip protoc-3.6.1-linux-x86_64.zip && mv bin/protoc /usr/local/bin && mv include/* /usr/local/include/ && rm protoc-3.6.1-linux-x86_64.zip
 
-# install vim plugins
-FROM ubuntu:18.10 as vim_plugins_builder
-RUN apt-get update && apt-get install -y git ca-certificates
-RUN mkdir -p /root/.vim/plugged && cd /root/.vim/plugged && \ 
-	git clone 'https://github.com/AndrewRadev/splitjoin.vim' && \ 
-	git clone 'https://github.com/ConradIrwin/vim-bracketed-paste' && \
-	git clone 'https://github.com/Raimondi/delimitMate' && \
-	git clone 'https://github.com/SirVer/ultisnips' && \
-	git clone 'https://github.com/cespare/vim-toml' && \
-	git clone 'https://github.com/corylanou/vim-present' && \
-	git clone 'https://github.com/ekalinin/Dockerfile.vim' && \
-	git clone 'https://github.com/elzr/vim-json' && \
-	git clone 'https://github.com/fatih/vim-go' && \
-	git clone 'https://github.com/fatih/vim-hclfmt' && \
-	git clone 'https://github.com/fatih/vim-nginx' && \
-	git clone 'https://github.com/godlygeek/tabular' && \
-	git clone 'https://github.com/hashivim/vim-hashicorp-tools' && \
-	git clone 'https://github.com/junegunn/fzf.vim' && \
-	git clone 'https://github.com/mileszs/ack.vim' && \
-	git clone 'https://github.com/roxma/vim-tmux-clipboard' && \
-	git clone 'https://github.com/plasticboy/vim-markdown' && \
-	git clone 'https://github.com/scrooloose/nerdtree' && \
-	git clone 'https://github.com/t9md/vim-choosewin' && \
-	git clone 'https://github.com/tmux-plugins/vim-tmux' && \
-	git clone 'https://github.com/tmux-plugins/vim-tmux-focus-events' && \
-	git clone 'https://github.com/fatih/molokai' && \
-	git clone 'https://github.com/tpope/vim-commentary' && \
-	git clone 'https://github.com/tpope/vim-eunuch' && \
-	git clone 'https://github.com/tpope/vim-fugitive' && \
-	git clone 'https://github.com/tpope/vim-repeat' && \
-	git clone 'https://github.com/tpope/vim-scriptease' && \
-	git clone 'https://github.com/ervandew/supertab'
-
-# install go tools
-FROM golang:$GOLANG_VERSION as golang_builder
-RUN go get -u github.com/davidrjenni/reftools/cmd/fillstruct
-RUN go get -u github.com/mdempsky/gocode
-RUN go get -u github.com/rogpeppe/godef
-RUN go get -u github.com/zmb3/gogetdoc
-RUN go get -u golang.org/x/tools/cmd/goimports
-RUN go get -u github.com/golang/lint/golint
-RUN go get -u github.com/alecthomas/gometalinter
-RUN go get -u github.com/fatih/gomodifytags
-RUN go get -u golang.org/x/tools/cmd/gorename
-RUN go get -u golang.org/x/tools/cmd/guru
-RUN go get -u github.com/josharian/impl
-RUN go get -u honnef.co/go/tools/cmd/keyify
-RUN go get -u github.com/fatih/motion
-RUN go get -u github.com/koron/iferr
-RUN go get -v -d github.com/stamblerre/gocode && go build -o gocode-gomod github.com/stamblerre/gocode && mv gocode-gomod /go/bin
-
-# generic tools
-RUN go get -u github.com/aybabtme/humanlog/cmd/...
-RUN go get -u github.com/fatih/hclfmt
-RUN GIT_TAG="v1.2.0" && go get -d -u github.com/golang/protobuf/protoc-gen-go && git -C "$(go env GOPATH)"/src/github.com/golang/protobuf checkout $GIT_TAG && go install github.com/golang/protobuf/protoc-gen-go
 
 
 # base OS
@@ -165,6 +110,19 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 	&& rm -rf /var/lib/apt/lists/*
 
 
+# development tools 
+
+RUN apt-get install emacs25
+RUN git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
+
+RUN apt-get install
+RUN apt-get install nodejs npm
+RUN npm install -g truffle
+RUN apt-get install git
+RUN npm install -g ethereumjs-testrpc
+RUN apt-get install software-properties-common && add-apt-repository -y ppa:ethereum/ethereum && apt-get update && sudo apt-get install ethereum
+
+
 RUN mkdir /run/sshd
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 RUN sed 's/#Port 22/Port 3222/' -i /etc/ssh/sshd_config
@@ -189,6 +147,8 @@ RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
   apt-get update -y && apt-get install google-cloud-sdk google-cloud-sdk-app-engine-go -y
 
 RUN wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy && chmod +x cloud_sql_proxy && mv cloud_sql_proxy /usr/local/bin
+
+RUN apt install emacs25
 
 # for correct colours is tmux
 ENV TERM screen-256color
@@ -215,7 +175,7 @@ COPY --from=protobuf_builder /usr/local/include/google/ /usr/local/include/googl
 # install tools
 RUN wget https://github.com/gsamokovarov/jump/releases/download/v0.22.0/jump_0.22.0_amd64.deb && sudo dpkg -i jump_0.22.0_amd64.deb && rm -rf jump_0.22.0_amd64.deb
 
-RUN mkdir ~/.ssh && curl -fsL https://github.com/fatih.keys > ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
+RUN mkdir ~/.ssh && curl -fsL https://github.com/trepca.keys > ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
 # vim plugins
 RUN curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
