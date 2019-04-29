@@ -1,35 +1,35 @@
 ARG GOLANG_VERSION=1.11.4
 
 # install kubectl
-FROM ubuntu:18.10 as kubectl_builder
+FROM ubuntu:19.04 as kubectl_builder
 RUN apt-get update && apt-get install -y curl ca-certificates
 RUN curl -L -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 RUN chmod 755 /usr/local/bin/kubectl
 
 # install 1password
-FROM ubuntu:18.10 as onepassword_builder
+FROM ubuntu:19.04 as onepassword_builder
 RUN apt-get update && apt-get install -y curl ca-certificates unzip
 RUN curl -sS -o 1password.zip https://cache.agilebits.com/dist/1P/op/pkg/v0.5.5/op_linux_amd64_v0.5.5.zip && unzip 1password.zip op -d /usr/bin &&  rm 1password.zip
 
 # install doctl
-FROM ubuntu:18.10 as doctl_builder
+FROM ubuntu:19.04 as doctl_builder
 RUN apt-get update && apt-get install -y wget ca-certificates
 RUN wget https://github.com/digitalocean/doctl/releases/download/v1.12.2/doctl-1.12.2-linux-amd64.tar.gz && tar xf doctl-1.12.2-linux-amd64.tar.gz && chmod +x doctl && mv doctl /usr/local/bin && rm doctl-1.12.2-linux-amd64.tar.gz
 
 # install terraform
-FROM ubuntu:18.10 as terraform_builder
+FROM ubuntu:19.04 as terraform_builder
 RUN apt-get update && apt-get install -y wget ca-certificates unzip
 RUN wget https://releases.hashicorp.com/terraform/0.11.11/terraform_0.11.11_linux_amd64.zip && unzip terraform_0.11.11_linux_amd64.zip && chmod +x terraform && mv terraform /usr/local/bin && rm terraform_0.11.11_linux_amd64.zip
 
 # install protobuf
-FROM ubuntu:18.10 as protobuf_builder
+FROM ubuntu:19.04 as protobuf_builder
 RUN apt-get update && apt-get install -y wget ca-certificates unzip
 RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip && unzip protoc-3.6.1-linux-x86_64.zip && mv bin/protoc /usr/local/bin && mv include/* /usr/local/include/ && rm protoc-3.6.1-linux-x86_64.zip
 
 
 
 # base OS
-FROM ubuntu:18.10
+FROM ubuntu:19.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
@@ -104,6 +104,7 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 	wget \
 	zgen \
 	zip \
+    emacs \
 	zlib1g-dev \
 	zsh \
 	--no-install-recommends \
@@ -111,25 +112,20 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 
 
 # development tools 
-
-RUN apt-get install emacs25
 RUN git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
-
-RUN apt-get install
-RUN apt-get install nodejs npm
+RUN apt-get install build-essential
+RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+RUN apt-get install -y nodejs
+RUN apt-get install -y npm
 RUN npm install -g truffle
 RUN apt-get install git
 RUN npm install -g ethereumjs-testrpc
-RUN apt-get install software-properties-common && add-apt-repository -y ppa:ethereum/ethereum && apt-get update && sudo apt-get install ethereum
+
 
 
 RUN mkdir /run/sshd
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
 RUN sed 's/#Port 22/Port 3222/' -i /etc/ssh/sshd_config
-
-RUN add-apt-repository ppa:jonathonf/vim -y && apt-get update && apt-get install vim-gtk3 -y
-
-RUN wget https://dl.google.com/go/go1.11.4.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.11.4.linux-amd64.tar.gz && rm go1.11.4.linux-amd64.tar.gz
 
 ENV LANG="en_US.UTF-8"
 ENV LC_ALL="en_US.UTF-8"
@@ -141,14 +137,8 @@ RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
 	update-locale LANG=$LANG LC_ALL=$LC_ALL LANGUAGE=$LANGUAGE
 
 # gcloud
-RUN export CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
-  echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-  apt-get update -y && apt-get install google-cloud-sdk google-cloud-sdk-app-engine-go -y
+RUN curl https://sdk.cloud.google.com | bash
 
-RUN wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy && chmod +x cloud_sql_proxy && mv cloud_sql_proxy /usr/local/bin
-
-RUN apt install emacs25
 
 # for correct colours is tmux
 ENV TERM screen-256color
@@ -159,8 +149,6 @@ COPY --from=kubectl_builder /usr/local/bin/kubectl /usr/local/bin/
 # kubectl
 COPY --from=onepassword_builder /usr/bin/op /usr/local/bin/
 
-# golang tools
-COPY --from=golang_builder /go/bin/* /usr/local/bin/
 
 # doctl tools
 COPY --from=doctl_builder /usr/local/bin/doctl /usr/local/bin/
@@ -177,9 +165,6 @@ RUN wget https://github.com/gsamokovarov/jump/releases/download/v0.22.0/jump_0.2
 
 RUN mkdir ~/.ssh && curl -fsL https://github.com/trepca.keys > ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
 
-# vim plugins
-RUN curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-COPY --from=vim_plugins_builder /root/.vim/plugged /root/.vim/plugged
 
 RUN git clone https://github.com/junegunn/fzf /root/.fzf && cd /root/.fzf && git remote set-url origin git@github.com:junegunn/fzf.git && /root/.fzf/install --bin --64 --no-bash --no-zsh --no-fish
 
