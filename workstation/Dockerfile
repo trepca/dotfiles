@@ -104,7 +104,7 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 	wget \
 	zgen \
 	zip \
-    emacs \
+  emacs \
 	zlib1g-dev \
 	zsh \
 	--no-install-recommends \
@@ -120,22 +120,15 @@ RUN apt-get install -y npm
 RUN npm install -g truffle
 RUN apt-get install git
 RUN npm install -g ethereumjs-testrpc
-RUN curl https://sh.rustup.rs -sSf | sh
-RUN rustup toolchain install nightly
-RUN rustup default nightly
-RUN rustup update
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+RUN /bin/bash -c "source /root/.cargo/env"
+RUN /root/.cargo/bin/rustup toolchain install nightly
+RUN /root/.cargo/bin/rustup default nightly
+RUN /root/.cargo/bin/rustup update
 
 
 # emacs
 RUN git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
-# fix for orgmode layer
-RUN cd ~/.emacs.d
-RUN git checkout -b fix-org-projectile
-RUN git cherry-pick 6063466
-RUN rm CHANGELOG.develop
-RUN git add -A .
-RUN git cherry-pick --continue
-
 
 
 
@@ -198,7 +191,7 @@ RUN git clone https://github.com/tmux-plugins/tmux-prefix-highlight.git ~/.tmux/
 RUN chsh -s /usr/bin/zsh
 
 EXPOSE 3222 60000-60010/udp
-RUN rustup completions zsh > ~/.zfunc/_rustup
+
 
 WORKDIR /root
 COPY entrypoint.sh /bin/entrypoint.sh
