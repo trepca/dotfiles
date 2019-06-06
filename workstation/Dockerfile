@@ -57,6 +57,7 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 	ipcalc \
 	jq \
 	less \
+  vim \
 	libclang-dev \
 	liblzma-dev \
 	libpq-dev \
@@ -75,7 +76,6 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 	netcat-openbsd \
 	openssh-server \
 	pkg-config \
-	postgresql-contrib \
 	protobuf-compiler \
 	pwgen \
 	python \
@@ -112,7 +112,7 @@ RUN apt-get update -qq && apt-get upgrade -y && apt-get install -qq -y \
 
 
 # development tools 
-RUN git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
+
 RUN apt-get install build-essential
 RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 RUN apt-get install -y nodejs
@@ -120,6 +120,23 @@ RUN apt-get install -y npm
 RUN npm install -g truffle
 RUN apt-get install git
 RUN npm install -g ethereumjs-testrpc
+RUN curl https://sh.rustup.rs -sSf | sh
+RUN rustup toolchain install nightly
+RUN rustup default nightly
+RUN rustup update
+
+
+# emacs
+RUN git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
+# fix for orgmode layer
+RUN cd ~/.emacs.d
+RUN git checkout -b fix-org-projectile
+RUN git cherry-pick 6063466
+RUN rm CHANGELOG.develop
+RUN git add -A .
+RUN git cherry-pick --continue
+
+
 
 
 
@@ -181,6 +198,7 @@ RUN git clone https://github.com/tmux-plugins/tmux-prefix-highlight.git ~/.tmux/
 RUN chsh -s /usr/bin/zsh
 
 EXPOSE 3222 60000-60010/udp
+RUN rustup completions zsh > ~/.zfunc/_rustup
 
 WORKDIR /root
 COPY entrypoint.sh /bin/entrypoint.sh

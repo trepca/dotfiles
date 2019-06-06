@@ -6,9 +6,9 @@ resource "digitalocean_droplet" "dev" {
   region             = "lon1"
   size               = "s-2vcpu-2gb"
   private_networking = true
-  backups            = true
+  backups            = false
   ipv6               = true
-  name               = "dev"
+  name               = "workstation"
 
   # I really hate user-data, don't @ me. This is powerful and works fine for my
   # needs

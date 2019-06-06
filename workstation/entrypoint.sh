@@ -20,6 +20,7 @@ ln -s $(pwd)/tigrc ~/.tigrc
 ln -s $(pwd)/git-prompt.sh ~/.git-prompt.sh
 ln -s $(pwd)/gitconfig ~/.gitconfig
 ln -s $(pwd)/agignore ~/.agignore
+ln -s $(pwd)/spacemacs ~/.spacemacs
 ln -s $(pwd)/sshconfig ~/.ssh/config
 
 
